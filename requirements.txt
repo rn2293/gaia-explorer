@@ -1,0 +1,17 @@
+# Core astronomy libraries
+astropy>=7.2.0
+astroquery>=0.4.11
+
+# Data manipulation
+numpy>=1.26,<3
+pandas>=2.0,<3
+
+# Visualization
+matplotlib>=3.8,<4
+
+# Machine learning (used in week2 clustering)
+scikit-learn>=1.4,<2
+
+# Jupyter environment
+jupyterlab>=4.0
+ipykernel>=6.0
