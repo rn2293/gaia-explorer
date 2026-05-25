@@ -1,0 +1,31 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(git push*)",
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/check-push-remote.sh\"",
+            "timeout": 10,
+            "statusMessage": "Checking push remote..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "read -r input; f=$(echo \"$input\" | jq -r '.tool_input.file_path // .tool_response.filePath'); echo \"$f\" | grep -q '\\.py$' && black \"$f\" 2>/dev/null || true",
+            "timeout": 30,
+            "statusMessage": "Auto-formatting Python..."
+          }
+        ]
+      }
+    ]
+  }
+}
