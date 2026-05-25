@@ -85,6 +85,59 @@ def plot_distance_vs_mag(df: pd.DataFrame) -> None:
     plt.show()
 
 
+def plot_parallax_hist_log(df: pd.DataFrame) -> None:
+    """
+    Plot parallax distribution on a log y-axis.
+
+    The log scale makes rare high-parallax stars (nearby) visible alongside
+    the dense bulk of distant stars — on a linear scale the tall distant-star
+    bar crushes everything else flat.
+    """
+    plt.figure(figsize=(8, 4))
+    plt.hist(df["parallax"], bins=100, color="steelblue", edgecolor="none")
+    plt.yscale("log")
+    plt.xlabel("Parallax (mas)")
+    plt.ylabel("Number of Stars (log scale)")
+    plt.title("Distribution of Stellar Parallaxes")
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_hr_scatter(df: pd.DataFrame) -> None:
+    """
+    Plot the HR diagram as a scatter plot — one dot per star.
+
+    Complements plot_hr_density: scatter shows individual stars and outliers
+    clearly, while density (hexbin) handles overlapping points better at scale.
+    Use s=1, alpha=0.5 to keep 10k points readable.
+    """
+    plt.figure(figsize=(10, 10))
+    plt.scatter(df["bp_rp"], df["absolute_mag"], s=1, alpha=0.5, color="steelblue")
+    plt.gca().invert_yaxis()
+    plt.xlabel("BP-RP Color")
+    plt.ylabel("Absolute Magnitude")
+    plt.title("Gaia HR Diagram — Scatter")
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_distance_hist(df: pd.DataFrame) -> None:
+    """
+    Plot the distribution of distances in parsecs.
+
+    For a volume-limited sample, star counts should rise as d² (more volume
+    at larger distances). Deviations from this reveal the survey's completeness
+    limit and Malmquist bias. Useful for nearby-star subsets.
+    """
+    plt.figure(figsize=(8, 4))
+    plt.hist(df["distance_pc"], bins=100, color="steelblue", edgecolor="none")
+    plt.xlabel("Distance (pc)")
+    plt.ylabel("Number of Stars")
+    plt.title("Distribution of Stellar Distances")
+    plt.tight_layout()
+    plt.show()
+
+
 def plot_hr_clusters(df: pd.DataFrame, n_clusters: int = 4) -> None:
     """
     Plot HR diagram with K-Means cluster labels colored by group.
