@@ -112,7 +112,7 @@ def plot_hr_scatter(df: pd.DataFrame) -> None:
     Use s=1, alpha=0.5 to keep 10k points readable.
     """
     plt.figure(figsize=(10, 10))
-    plt.scatter(df["bp_rp"], df["absolute_mag"], s=1, alpha=0.5, color="steelblue")
+    plt.scatter(df["bp_rp"], df["absolute_mag"], s=2, alpha=1, color="steelblue")
     plt.gca().invert_yaxis()
     plt.xlabel("BP-RP Color")
     plt.ylabel("Absolute Magnitude")
