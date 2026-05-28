@@ -49,6 +49,8 @@ def fetch_gaia_sample(top_n: int = 10000) -> pd.DataFrame:
         phot_g_mean_mag — Apparent brightness in the G (green) broadband filter
         bp_rp           — Color index: Blue Photometer minus Red Photometer.
                           Low bp_rp = hot blue star, high bp_rp = cool red star.
+        pmra            — Proper motion in RA direction (mas/yr), includes cos(dec) factor
+        pmdec           — Proper motion in Dec direction (mas/yr)
 
     Args:
         top_n: Maximum number of stars to return (default 10,000). Must be a positive int.
@@ -75,7 +77,9 @@ def fetch_gaia_sample(top_n: int = 10000) -> pd.DataFrame:
         parallax,
         parallax_error,
         phot_g_mean_mag,
-        bp_rp
+        bp_rp,
+        pmra,
+        pmdec
     FROM gaiadr3.gaia_source
     WHERE parallax IS NOT NULL
     """
