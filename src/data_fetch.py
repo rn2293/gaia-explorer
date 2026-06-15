@@ -6,38 +6,13 @@ Data is queried using ADQL (Astronomical Data Query Language), a dialect of SQL
 used by the Gaia Archive and other VO (Virtual Observatory) services.
 """
 
-import ssl
-import warnings
 import pandas as pd
-import astropy.utils.data as aud
 from astroquery.gaia import Gaia
 
-
-def _configure_network(timeout: int = 60) -> None:
-    """
-    Apply network settings needed to reach the Gaia archive.
-
-    The SSL override is required in environments with corporate network inspection
-    (e.g., man-in-the-middle proxies) that break astroquery's certificate chain.
-    Without it, queries fail with SSL verification errors.
-
-    WARNING: this mutates the process-global SSL context — all subsequent HTTPS
-    connections in this Python process will skip certificate verification.
-    Prefer setting SSL_CERT_FILE or REQUESTS_CA_BUNDLE to your corporate CA bundle
-    instead. Only use this override if that is not possible.
-    """
-    aud.REMOTE_TIMEOUT = timeout
-    warnings.warn(
-        "SSL certificate verification is disabled for this session. "
-        "All HTTPS connections in this process will skip cert checks. "
-        "Set SSL_CERT_FILE to your corporate CA bundle to avoid this.",
-        UserWarning,
-        stacklevel=3,
-    )
-    ssl._create_default_https_context = ssl._create_unverified_context
+from .network import configure_gaia_network
 
 
-def fetch_gaia_sample(top_n: int = 10000) -> pd.DataFrame:
+def fetch_gaia_sample(top_n: int = 10000, *, verify_ssl: bool = False) -> pd.DataFrame:
     """
     Query the Gaia DR3 catalog and return a raw DataFrame.
 
@@ -54,6 +29,10 @@ def fetch_gaia_sample(top_n: int = 10000) -> pd.DataFrame:
 
     Args:
         top_n: Maximum number of stars to return (default 10,000). Must be a positive int.
+        verify_ssl: Keep TLS certificate verification enabled. Leave False only
+            when a managed/corporate network injects a certificate Python does
+            not trust. Prefer setting SSL_CERT_FILE or REQUESTS_CA_BUNDLE to the
+            correct CA bundle and passing verify_ssl=True.
 
     Returns:
         pandas.DataFrame with the columns above.
@@ -65,7 +44,7 @@ def fetch_gaia_sample(top_n: int = 10000) -> pd.DataFrame:
     if not isinstance(top_n, int) or top_n <= 0:
         raise TypeError(f"top_n must be a positive integer, got {top_n!r}")
 
-    _configure_network()
+    configure_gaia_network(verify_ssl=verify_ssl)
 
     # ADQL query — SELECT TOP limits rows; WHERE filters out stars with no parallax
     # (parallax is essential for computing distance, so rows without it are unusable)

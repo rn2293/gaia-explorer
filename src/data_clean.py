@@ -10,33 +10,46 @@ import numpy as np
 import pandas as pd
 
 
-def clean_sample(df: pd.DataFrame) -> pd.DataFrame:
+REQUIRED_GAIA_COLUMNS = [
+    "parallax",
+    "parallax_error",
+    "phot_g_mean_mag",
+    "bp_rp",
+    "ra",
+    "dec",
+]
+
+
+def clean_sample(df: pd.DataFrame, *, snr_threshold: float = 5) -> pd.DataFrame:
     """
     Apply quality filters to a raw Gaia DataFrame.
 
     Filters applied:
-        1. parallax > 0         — negative parallax is unphysical; it results from
+        1. Required Gaia columns are present and non-null.
+        2. parallax > 0         - negative parallax is unphysical; it results from
                                   measurement noise on very distant stars.
-        2. parallax / parallax_error > 5  — signal-to-noise ratio cut.
-                                  SNR < 5 means the uncertainty is so large that the
-                                  derived distance could be off by 25%+, making
-                                  absolute magnitude calculations unreliable.
-        3. bp_rp is not null    — stars without a color index can't be placed on
-                                  the HR diagram.
+        3. parallax_error > 0   - zero or negative uncertainty makes SNR invalid.
+        4. parallax_snr > threshold - low-SNR distances make absolute magnitudes noisy.
 
     Args:
         df: Raw DataFrame from data_fetch.fetch_gaia_sample().
+        snr_threshold: Minimum parallax signal-to-noise ratio to keep.
 
     Returns:
-        Filtered copy of df. Original is not modified.
+        Filtered copy of df with parallax_snr added. Original is not modified.
     """
-    mask = (
-        (df["parallax"] > 0) &
-        (df["parallax_error"] > 0) &           # guard against zero/NaN error → inf SNR
-        (df["parallax"] / df["parallax_error"] > 5) &
-        (df["bp_rp"].notna())
-    )
-    clean = df[mask].copy()
+    missing_columns = [col for col in REQUIRED_GAIA_COLUMNS if col not in df.columns]
+    if missing_columns:
+        raise ValueError(f"Missing required Gaia columns: {missing_columns}")
+
+    clean = df.dropna(subset=REQUIRED_GAIA_COLUMNS).copy()
+    clean = clean[
+        (clean["parallax"] > 0) &
+        (clean["parallax_error"] > 0)
+    ].copy()
+    clean["parallax_snr"] = clean["parallax"] / clean["parallax_error"]
+    clean = clean[clean["parallax_snr"] > snr_threshold].copy()
+
     print(f"Stars before cleaning: {len(df):,}")
     print(f"Stars after cleaning:  {len(clean):,}  ({100 * len(clean) / len(df):.1f}% kept)")
     return clean
