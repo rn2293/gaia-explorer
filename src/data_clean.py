@@ -84,3 +84,35 @@ def add_features(df: pd.DataFrame) -> pd.DataFrame:
     df["absolute_mag"] = df["phot_g_mean_mag"] - 5 * np.log10(df["distance_pc"] / 10)
 
     return df
+
+
+def add_absolute_magnitude_target(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Return a copy of df with the Week 2 regression target columns added.
+
+    Columns added:
+        distance_pc - Distance in parsecs, computed from Gaia parallax in mas.
+        abs_g_mag   - Absolute Gaia G magnitude, the Week 2 regression target.
+
+    The target formula is the distance modulus written in Gaia parallax form:
+        M = m - 5 * log10(d / 10)
+        d = 1000 / parallax_mas
+        M = m + 5 * log10(parallax_mas) - 10
+
+    Args:
+        df: Cleaned Gaia DataFrame with positive parallax and phot_g_mean_mag.
+
+    Returns:
+        New DataFrame with distance_pc and abs_g_mag columns added.
+    """
+    missing_columns = [col for col in ["parallax", "phot_g_mean_mag"] if col not in df.columns]
+    if missing_columns:
+        raise ValueError(f"Missing columns required for absolute magnitude: {missing_columns}")
+
+    if (df["parallax"] <= 0).any():
+        raise ValueError("Absolute magnitude requires positive parallax values.")
+
+    df = df.copy()
+    df["distance_pc"] = 1000 / df["parallax"]
+    df["abs_g_mag"] = df["phot_g_mean_mag"] + 5 * np.log10(df["parallax"]) - 10
+    return df
