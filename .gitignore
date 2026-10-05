@@ -1,3 +1,9 @@
 .claude/settings.local.json
 __pycache__/
 *.pyc
+
+# Local Gaia queries and notebook outputs; keep the directory .gitkeep files.
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep

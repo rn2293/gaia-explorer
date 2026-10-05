@@ -178,3 +178,87 @@ def plot_hr_clusters(df: pd.DataFrame, n_clusters: int = 4) -> None:
     plt.legend(markerscale=4)
     plt.tight_layout()
     plt.show()
+
+
+def plot_classification_hr(df, *, values=None, title="Gaia brightness teaching label"):
+    """Show labels or probabilities on the HR diagram; magnitude is diagnostic only."""
+    import numpy as np
+    from matplotlib.colors import ListedColormap
+
+    colors = df["is_bright"] if values is None else np.asarray(values)
+    cmap = ListedColormap(["#3b6fb6", "#c63d3d"]) if values is None else "coolwarm"
+    fig, ax = plt.subplots(figsize=(8, 6))
+    points = ax.scatter(df.bp_rp, df.abs_g_mag, c=colors, cmap=cmap, vmin=0, vmax=1, s=8, alpha=0.6)
+    ax.axhline(4, color="black", linestyle="--", label="Teaching label cut: M_G = 4")
+    ax.invert_yaxis()
+    ax.set(xlabel="BP-RP (mag)", ylabel="Absolute G magnitude (uncorrected for extinction)", title=title)
+    if values is None:
+        # Label both classes beside the plot; a numeric colorbar is easy to miss.
+        ax.scatter([], [], color="#3b6fb6", label="Blue dots: 0 = fainter (M_G ≥ 4)")
+        ax.scatter([], [], color="#c63d3d", label="Red dots: 1 = brighter (M_G < 4)")
+    ax.legend(loc="upper right")
+    if values is not None:
+        colorbar = fig.colorbar(points, ax=ax)
+        colorbar.set_label("Predicted probability of M_G < 4")
+    fig.tight_layout()
+    plt.show()
+
+
+def plot_binary_curves(x, curves, *, xlabel, ylabel, title, threshold=None):
+    """Compare named curves, including sigmoid, loss, and optimization histories."""
+    fig, ax = plt.subplots(figsize=(8, 4))
+    for label, values in curves.items():
+        ax.plot(x, values, label=label)
+    if threshold is not None:
+        ax.axhline(threshold, color="black", linestyle="--", label=f"Threshold = {threshold:g}")
+    ax.set(xlabel=xlabel, ylabel=ylabel, title=title)
+    ax.legend()
+    fig.tight_layout()
+    plt.show()
+
+
+def plot_color_probability(model, df, *, threshold=0.5, title="Color-only classification"):
+    """Separate observed 0/1 labels from predicted probabilities.
+
+    Both use numbers between zero and one, but they mean different things. Two
+    panels keep a measured class label from looking like a model probability.
+    """
+    import numpy as np
+    grid = pd.DataFrame({"bp_rp": np.linspace(df.bp_rp.min(), df.bp_rp.max(), 300)})
+    fig, (observed_ax, probability_ax) = plt.subplots(
+        2, 1, figsize=(9, 6), sharex=True, gridspec_kw={"height_ratios": [1, 2]}
+    )
+
+    # Top: the answers supplied by the Gaia-derived teaching label.
+    observed_ax.scatter(df.bp_rp, df.is_bright, s=9, alpha=0.35, color="steelblue")
+    observed_ax.set(ylim=(-0.3, 1.3), title="Actual labels: each dot is one validation star")
+    observed_ax.set_yticks([0, 1], labels=["Class 0: M_G ≥ 4", "Class 1: M_G < 4"])
+    observed_ax.grid(axis="x", alpha=0.2)
+
+    # Bottom: the model's estimate. Only this panel has a probability scale.
+    probability_ax.plot(grid.bp_rp, model.predict_proba(grid)[:, 1],
+                        color="darkorange", linewidth=2, label="Model probability of label 1")
+    probability_ax.axhline(threshold, color="black", linestyle="--",
+                           label=f"Decision threshold = {threshold:.0%}")
+    probability_ax.set(xlabel="BP-RP color (larger = redder)",
+                       ylabel="Estimated chance of label 1", ylim=(-0.05, 1.05),
+                       title="Model estimate from color")
+    probability_ax.set_yticks([0, 0.5, 1], labels=["0%", "50%", "100%"])
+    probability_ax.legend(loc="upper right")
+    fig.suptitle(title)
+    fig.tight_layout()
+    plt.show()
+
+
+def plot_binary_evaluation(y, probabilities, *, threshold=0.5):
+    """Confusion matrix and precision-recall curve for a specified split."""
+    import numpy as np
+    from sklearn.metrics import ConfusionMatrixDisplay, PrecisionRecallDisplay
+    fig, axes = plt.subplots(1, 2, figsize=(11, 4))
+    ConfusionMatrixDisplay.from_predictions(y, (np.asarray(probabilities) >= threshold).astype(int),
+                                           labels=[0, 1], display_labels=["M_G ≥ 4", "M_G < 4"], ax=axes[0], colorbar=False)
+    PrecisionRecallDisplay.from_predictions(y, probabilities, ax=axes[1])
+    axes[1].axhline(np.mean(y), linestyle="--", color="gray", label="Positive prevalence")
+    axes[1].legend()
+    fig.tight_layout()
+    plt.show()
